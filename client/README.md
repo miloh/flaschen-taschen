@@ -54,6 +54,10 @@ Essentially just send the FlaschenTaschen display an image over the network:
 ```
 ./send-image -g10x20+15+7 some-image.png
 ```
+Or an endless loop of jpg images in a directory:
+```
+while true; do for x in ./imagedir/*.jpg; do ./send-image -D 10x10 $x;done; done
+```
 
 Image will be scaled to the given size (here 10x20) and shown
 on the FlaschenTaschen display at the given offset (here 15 pixels x-offset,

@@ -12,6 +12,8 @@ simple-animation: simple-animation.cc $(OBJECTS)
 
 simple-example: simple-example.cc $(OBJECTS)
 
+font-example : font-example.cc $(OBJECTS)
+
 send-image : send-image.cc $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -o $@ $^ $(MAGICK_LDFLAGS)
 
@@ -21,5 +23,7 @@ send-video: send-video.cc $(OBJECTS)
 % : %.cc
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+font-example : font-example.cc  $(OBJECTS)
+	$(CXX) $(CXXFLAGS)  -o $@ $^
 clean:
-	rm -f send-image send-video simple-example simple-animation $(OBJECTS)
+	rm -f send-image send-video simple-example simple-animation font-example $(OBJECTS)
