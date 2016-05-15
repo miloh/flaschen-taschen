@@ -16,6 +16,8 @@ simple-example: simple-example.cc
 send-text: send-text.cc
 game-client: game-client.cc
 burn-in: burn-in.cc
+simple-strip: simple-strip.cc
+simple-specklestrip: simple-specklestrip.cc
 
 pong-game: pong-game.cc game-engine.cc libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -36,4 +38,4 @@ libftclient.a: $(LIB_OBJECTS)
 	ar rcs $@ $^
 
 clean:
-	rm -f send-text send-image send-video simple-example simple-animation pong-game game-client $(LIB_OBJECTS) libftclient.a
+	rm -f send-text send-image send-video simple-example simple-animation pong-game game-client simple-strip simple-specklestrip $(LIB_OBJECTS) libftclient.a 
