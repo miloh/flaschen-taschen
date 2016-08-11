@@ -1,8 +1,8 @@
-CXXFLAGS=-Wall -O3 -I../common -I.
+CXXFLAGS=-Wall -O3 -D__LINUX__ -I../common -I. 
 LIB_OBJECTS=udp-flaschen-taschen.o bdf-font.o graphics.o
 LIB_CXXFLAGS=$(CXXFLAGS) -fPIC
 
-LDFLAGS=-L. -lftclient
+LDFLAGS=-L. -lftclient -lWalabotAPI
 
 MAGICK_CXXFLAGS=`GraphicsMagick++-config --cppflags --cxxflags`
 MAGICK_LDFLAGS=`GraphicsMagick++-config --ldflags --libs`
@@ -25,6 +25,10 @@ send-image : send-image.cc libftclient.a
 
 send-video: send-video.cc libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $< $(FFMPEG_LDFLAGS) $(LDFLAGS)
+
+walabot-test: RawImageSave.cpp libftclient.a
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+
 
 % : %.cc libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
