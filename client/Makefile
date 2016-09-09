@@ -26,9 +26,11 @@ send-image : send-image.cc libftclient.a
 send-video: send-video.cc libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $< $(FFMPEG_LDFLAGS) $(LDFLAGS)
 
-walabot-test: RawImageSave.cpp libftclient.a
+walabot-raw-image-example: walabot-raw-image-example.cpp libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
+walabot-inwall-image-example: walabot-inwall-image-example.cpp libftclient.a
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 % : %.cc libftclient.a
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
