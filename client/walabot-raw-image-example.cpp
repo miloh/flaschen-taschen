@@ -164,7 +164,7 @@ void SensorCode_SampleCode(const char* hostname)
 		7) Stop/Disconnect
 	*/
 
-	bool mtiMode = true;
+	bool mtiMode = false;
 
 	// Configure Walabot database install location
 	#ifdef __LINUX__
@@ -208,7 +208,7 @@ void SensorCode_SampleCode(const char* hostname)
 		FILTER_TYPE_MTI :		//Moving Target Identification: standard dynamic-imaging filter
 		FILTER_TYPE_NONE;
 
-	res = Walabot_SetDynamicImageFilter(filterType);
+	res = Walabot_SetDynamicImageFilter(filtertype);
 	CHECK_WALABOT_RESULT(res, "Walabot_SetDynamicImageFilter");
 
 	//	3) Start: Start the system in preparation for scanning.
