@@ -260,9 +260,7 @@ void SensorCode_SampleCode(const char* hostname)
 	    system("cls");
 	#endif
 
-	cout << "first image" << endl;
-	cout << "this array is: " << rasterImage << endl;
-	cout << "this sizeof rasterimage: " << sizeof(rasterImage) << endl;
+	printf("First Image\n");
 	cout << "sizeX: " << sizeX << endl;
 	cout << "sizeY: " << sizeY << endl;
 	cout << "sliceDepth: " << sliceDepth << endl;
