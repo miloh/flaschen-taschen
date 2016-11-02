@@ -135,19 +135,19 @@ void SensorCode_SampleCode(const char* hostname)
 	// ------------------------
 
 	// Walabot_SetArenaR - input parameters
-	double minInCm = 30;
-	double maxInCm = 200;
-	double resICm = 3;
+	double minInCm = 1;
+	double maxInCm = 15;
+	double resICm = .1;
 
 	// Walabot_SetArenaTheta - input parameters
-	double minIndegrees = -15;
-	double maxIndegrees = 15;
-	double resIndegrees = 5;
+	double minIndegrees = -0.01;
+	double maxIndegrees = 0.01;
+	double resIndegrees = 1;
 
 	// Walabot_SetArenaPhi - input parameters
-	double minPhiInDegrees = -60;
-	double maxPhiInDegrees = 60;
-	double resPhiInDegrees = 5;
+	double minPhiInDegrees = -0.01;
+	double maxPhiInDegrees = 0.01;
+	double resPhiInDegrees = 1;
 
 	// ----------------------
 	// Sample Code Start Here
@@ -208,7 +208,7 @@ void SensorCode_SampleCode(const char* hostname)
 		FILTER_TYPE_MTI :		//Moving Target Identification: standard dynamic-imaging filter
 		FILTER_TYPE_NONE;
 
-	res = Walabot_SetDynamicImageFilter(filtertype);
+	res = Walabot_SetDynamicImageFilter(filterType);
 	CHECK_WALABOT_RESULT(res, "Walabot_SetDynamicImageFilter");
 
 	//	3) Start: Start the system in preparation for scanning.
@@ -270,7 +270,7 @@ void SensorCode_SampleCode(const char* hostname)
         UDPFlaschenTaschen canvas(socket, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 	for (int y = 0; y < sizeY; ++y) {
 	  	for (int x = 0; x < sizeX; ++x) {
-    		    canvas.SetPixel(x/2, y, Color(0,*current_value,0));         // Sample with color variable.
+    		    canvas.SetPixel(y, x, Color(0,*current_value,0));         // Sample with color variable.
 		     //fprintf(stderr, "%02x ", *current_value);
 		     ++current_value;
 		}
