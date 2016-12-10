@@ -38,9 +38,14 @@
 #  include "led-strip.h"
 #endif
 
+#if FT_BACKEND == 1
+#  include "led-matrix.h"
+#endif
+
 #define DROP_PRIV_USER "daemon"
 #define DROP_PRIV_GROUP "daemon"
 
+#ifndef __APPLE__   // Apple does not have setresuid() etc.
 bool drop_privs(const char *priv_user, const char *priv_group) {
     uid_t ruid, euid, suid;
     if (getresuid(&ruid, &euid, &suid) >= 0) {
@@ -68,46 +73,64 @@ bool drop_privs(const char *priv_user, const char *priv_group) {
     }
     return true;
 }
+#endif
 
 static int usage(const char *progname) {
     fprintf(stderr, "usage: %s [options]\n", progname);
     fprintf(stderr, "Options:\n"
             "\t-D <width>x<height> : Output dimension. Default 45x35\n"
-            "\t-I <interface>      : Which network interface to wait for\n"
-            "\t                      to be ready (e.g eth0. Empty string '' for no "
-            "waiting).\n"
-            "\t                      Default ''\n"
-            "\t--layer-timeout <sec>: Layer timeout: clearing after non-activity (Default: 15)\n"
+#if FT_BACKEND == 2
+            "\t--hd-terminal       : Make terminal with higher resolution.\n"
+#else
             "\t-d                  : Become daemon\n"
-            "\t--pixel-pusher      : Run PixelPusher protocol (default: false)\n"
-            "\t--opc               : Run OpenPixelControl protocol (default: false)\n"
-            "(By default, only the FlaschenTaschen UDP protocol is enabled)\n"
+#endif
+            "\t--layer-timeout <sec>: Layer timeout: clearing after non-activity (Default: 15)\n"
             );
+#if FT_BACKEND == 1
+    rgb_matrix::PrintMatrixFlags(stderr);
+#endif
     return 1;
 }
 
 int main(int argc, char *argv[]) {
-    std::string interface = "";
     int width = 45;
     int height = 35;
     int layer_timeout = 15;
+#if FT_BACKEND != 2
     bool as_daemon = false;
-    bool run_opc = false;
-    bool run_pixel_pusher = false;
+#endif
+#if FT_BACKEND == 2
+    bool hd_terminal = false;
+#endif
+
+#if FT_BACKEND == 1
+    rgb_matrix::RGBMatrix::Options matrix_options;
+    rgb_matrix::RuntimeOptions runtime_opt;
+    runtime_opt.daemon = -1;   // We deal with this manually belo
+    runtime_opt.drop_privileges = -1;
+
+    // First things first: extract the command line flags that contain
+    // relevant matrix options.
+    if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
+                                           &matrix_options, &runtime_opt)) {
+        return usage(argv[0]);
+    }
+#endif
 
     enum LongOptionsOnly {
-        OPT_OPC_SERVER = 1000,
-        OPT_PIXEL_PUSHER = 1001,
         OPT_LAYER_TIMEOUT = 1002,
+        OPT_HD_TERMINAL = 1003,
     };
 
     static struct option long_options[] = {
-        { "interface",          required_argument, NULL, 'I'},
         { "dimension",          required_argument, NULL, 'D'},
+#if FT_BACKEND != 2
         { "daemon",             no_argument,       NULL, 'd'},
+#endif
         { "layer-timeout",      required_argument, NULL,  OPT_LAYER_TIMEOUT },
-        { "opc",                no_argument,       NULL,  OPT_OPC_SERVER },
-        { "pixel-pusher",       no_argument,       NULL,  OPT_PIXEL_PUSHER },
+#if FT_BACKEND == 2
+        { "hd-terminal",        no_argument,       NULL,  OPT_HD_TERMINAL },
+#endif
         { 0,                    0,                 0,    0  },
     };
 
@@ -120,21 +143,19 @@ int main(int argc, char *argv[]) {
                 return usage(argv[0]);
             }
             break;
+#if FT_BACKEND != 2
         case 'd':
             as_daemon = true;
             break;
-        case 'I':
-            interface = optarg;
-            break;
+#endif
         case OPT_LAYER_TIMEOUT:
             layer_timeout = atoi(optarg);
             break;
-        case OPT_OPC_SERVER:
-            run_opc = true;
+#if FT_BACKEND == 2
+        case OPT_HD_TERMINAL:
+            hd_terminal = true;
             break;
-        case OPT_PIXEL_PUSHER:
-            run_pixel_pusher = true;
-            break;
+#endif
         default:
             return usage(argv[0]);
         }
@@ -149,29 +170,35 @@ int main(int argc, char *argv[]) {
     using spixels::CreateWS2801Strip;
     static const int kLedsPerCol = 7 * 25;
     MultiSPI *const spi = spixels::CreateDMAMultiSPI();
-    ColumnAssembly display(spi);
+    ColumnAssembly *display = new ColumnAssembly(spi);
 
 #define MAKE_COLUMN(port) new CrateColumnFlaschenTaschen(CreateWS2801Strip(spi, port, kLedsPerCol))
 
     // Looking from the back of the display: leftmost column first.
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P8));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P7));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P6));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P5));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P8));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P7));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P6));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P5));
 
     // Center column. Connected to front part
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P13));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P13));
 
     // Rest: continue on the back part
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P4));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P3));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P2));
-    display.AddColumn(MAKE_COLUMN(MultiSPI::SPI_P1));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P4));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P3));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P2));
+    display->AddColumn(MAKE_COLUMN(MultiSPI::SPI_P1));
 #undef MAKE_COLUMN
 #elif FT_BACKEND == 1
-    RGBMatrixFlaschenTaschen display(0, 0, width, height);
+    ServerFlaschenTaschen *display
+        = new RGBMatrixFlaschenTaschen(
+            CreateMatrixFromOptions(matrix_options, runtime_opt),
+            0, 0, width, height);
 #elif FT_BACKEND == 2
-    TerminalFlaschenTaschen display(STDOUT_FILENO, width, height);
+    ServerFlaschenTaschen *display =
+        hd_terminal
+        ? new HDTerminalFlaschenTaschen(STDOUT_FILENO, width, height)
+        : new TerminalFlaschenTaschen(STDOUT_FILENO, width, height);
 #endif
 
     // Start all the services and report problems (such as sockets already
@@ -180,43 +207,35 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Optional services.
-    if (run_opc && !opc_server_init(7890)) {
-        return 1;
-    }
-    if (run_pixel_pusher
-        && !pixel_pusher_init(interface.c_str(), &display)) {
-        return 1;
-    }
-
+#if FT_BACKEND != 2  // terminal thing can not run in background.
     // Commandline parsed, immediate errors reported. Time to become daemon.
     if (as_daemon && daemon(0, 0) != 0) {  // Become daemon.
         perror("Failed to become daemon");
     }
+#endif
 
     // Only after we have become a daemon, we can do all the things that
     // require starting threads. These can be various realtime priorities,
     // we so need to stay root until all threads are set up.
-    display.PostDaemonInit();
+    display->PostDaemonInit();
 
-    display.Send();  // Clear screen.
+    display->Send();  // Clear screen.
 
     ft::Mutex mutex;
 
     // The display we expose to the user provides composite layering which can
     // be used by the UDP server.
-    CompositeFlaschenTaschen layered_display(&display, 16);
+    CompositeFlaschenTaschen layered_display(display, 16);
     layered_display.StartLayerGarbageCollection(&mutex, layer_timeout);
 
-    // Optional services as thread.
-    if (run_opc) opc_server_run_thread(&layered_display, &mutex);
-    if (run_pixel_pusher) pixel_pusher_run_thread(&layered_display, &mutex);
-
+#ifndef __APPLE__
     // After hardware is set up, all servers are listening and all
     // threads are started with their respective priorities, we can drop
     // privileges.
     if (!drop_privs(DROP_PRIV_USER, DROP_PRIV_GROUP))
         return 1;
+#endif
 
     udp_server_run_blocking(&layered_display, &mutex);  // last server blocks.
+    delete display;
 }

@@ -3,9 +3,13 @@
 # display without having it available. We support all the same network API
 # interface, so things can be tested independently.
 #
-# TL;DR: If you want the output to the terminal for local experiments, try
+# You can set the backend to use with
 #
-# make FT_TERMINAL=terminal
+#  make FT_BACKEND=ft
+#
+# The default is 'terminal', as this is typically what you'd do. On the
+# 'real' FT machine, we can set the FT_BACKEND=ft to interact with the
+# SPI board and the LED strips.
 #
 # FT_BACKEND can be one of the following
 # ft
@@ -15,7 +19,8 @@
 # terminal
 #     Very simple output to current terminal. Requires decent terminal
 #     implementation that understands ANSI color escapes. Known terminals to
-#     work are konsole or xterm works. Gnome terminal does not.
+#     work are konsole or xterm. Newer Gnome terminals as well.
+#     Requires iTerm2 > 3.0 on Mac.
 #
 # rgb-matrix
 #    Output things to a LED matrix
@@ -23,7 +28,7 @@
 #    This requires the project to be checked out with submodules
 #    (git clone --recursive)
 #
-FT_BACKEND=ft
+FT_BACKEND=terminal
 
 # Spixel related. It is checked out as as submodule in spixels/
 SPIXELS_INCDIR=spixels/include
@@ -37,8 +42,8 @@ RGB_LIBRARY_NAME=rgbmatrix
 RGB_LIBRARY=$(RGB_LIBDIR)/lib$(RGB_LIBRARY_NAME).a
 RGB_LDFLAGS=-lrt -lm -lpthread
 
-INCLUDES=-I../common
-OBJECTS=ft-thread.o opc-server.o udp-server.o pixel-push-server.o composite-flaschen-taschen.o ppm-reader.o
+INCLUDES=-I../api/include
+OBJECTS=ft-thread.o udp-server.o composite-flaschen-taschen.o ppm-reader.o
 
 # Nested if/else are very awkward, so we just compare each possible outcome
 ifeq ($(FT_BACKEND), ft)
@@ -58,12 +63,12 @@ endif
 
 ifeq ($(FT_BACKEND), terminal)
    DEFINES=-DFT_BACKEND=2
-   OBJECTS+=terminal-flaschen-taschen.o
+   OBJECTS+=terminal-flaschen-taschen.o hd-terminal-flaschen-taschen.o
 endif
 
 CFLAGS=-Wall -O3 $(INCLUDES) $(DEFINES)
 CXXFLAGS=$(CFLAGS)
-LDFLAGS+=-lpthread -lrt
+LDFLAGS+=-lpthread
 
 all : ft-server
 

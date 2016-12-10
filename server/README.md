@@ -1,7 +1,7 @@
 Server implementation
 =====================
 
-The server implements various [protocols](../doc/protocols.md) so that
+The server implements the [network protocol](../doc/protocols.md) so that
 it is easy to interface with the display over the network.
 
 ## Regular Flaschen Taschen server
@@ -9,7 +9,7 @@ it is easy to interface with the display over the network.
 For the actual Flaschen Taschen display, simply build with
 
 ```
-  make
+  make FT_BACKEND=ft
 ```
 
 (Note, this needs the http://spixels.org library, which is included as git
@@ -20,20 +20,20 @@ These are the options
 ```
 usage: ./ft-server [options]
 Options:
-	-D <width>x<height> : Output dimension. Default 45x35
-	-I <interface>      : Which network interface to wait for
-	                      to be ready (e.g. eth0. Empty string '' for no waiting).
-	                      Default ''
-	-d                  : Become daemon
-	--pixel-pusher      : Run PixelPusher protocol (default: false)
-	--opc               : Run OpenPixelControl protocol (default: false)
-(By default, only the FlaschenTaschen UDP protocol is enabled)
+        -D <width>x<height> : Output dimension. Default 45x35
+        --layer-timeout <sec>: Layer timeout: clearing after non-activity (Default: 15)
+        -d                  : Become daemon
 ```
 
 ```bash
  # Run as root.
- sudo ./ft-server -d --opc --pixel-pusher
+ sudo ./ft-server -d
 ```
+
+To change resolution and composition of the actual display, you have to
+manually adapt the code in main.cc (look for `display.AddColumn()`) - to
+choose type of LED strip and to which SPI port on the spixels hardware they
+are connected to.
 
 The server has to be started as root as it has to access and initialize the
 GPIO pins, but it drops privileges to uid=daemon, gid=daemon after that is done.
@@ -43,25 +43,23 @@ Stopping ? Kill the hard way `sudo killall ft-server`.
 *This assumes to be running on the Raspberry Pi* as it needs to access the
 [GPIO pins](../hardware) to talk to the LED strips.
 
-Currently, the actual display is still work in progress:
-
-![](../img/ft-work-in-progress.jpg)
+![](../img/ft-completed.jpg)
 
 ## Testing setups
 
-While the actual FlaschenTaschen display is still work in progress (until
-we have all the bottles, crates and LEDs), we already want to prepare
-applications that use the display, so need a test server implementation to
-get an impression of the final looks.
+If you are not at Noisebridge right now but want to hack on applications
+that use the display, you can use different ways to visualize the output with
+the following applications.
 
-For this, we have test-setups, that allow to simulate the display in
-its full final resolution supporting the same protocol.
+These test-setups allow to simulate the display in its full resolution
+supporting the same protocol.
 
 ### Terminal
 
 On any development machine with a somewhat decent terminal that allows for
-24Bit [ANSI color][term-color] (konsole, xterm or gnome-terminal, xterm/X11
-on OSX), this `ft-server` allows to display the result in a terminal.
+24Bit [ANSI color][term-color] (konsole, xterm or gnome-terminal on Linux;
+xterm/X11 or iTerm2 >= 3.0 on OS X), this `ft-server` allows to display the
+result in a terminal.
 
 ```bash
   # Build with
@@ -73,11 +71,23 @@ on OSX), this `ft-server` allows to display the result in a terminal.
   ./ft-server -D45x35
 ```
 
-![](../img/terminal-screenshot.png)
+This also has an option to have a more compact representation - the resolution
+is twice as high which allows to display it on smaller terminals. However,
+it depends a bit more on your terminal to properly display UTF-8 characters:
+
+```bash
+./ft-server -D45x35 --hd-terminal
+```
+
+Regular terminal             | With `--hd-terminal` Option   |
+-----------------------------|-------------------------------|
+![](../img/terminal-sd.png)  | ![](../img/terminal-hd.png)   |
+
+<img src="../img/terminal-screenshot.png" width="100px">
 <img src="../img/terminal-screenshot-nb.png" width="100px">
 
 
-### RGB Display
+### RGB Matrix Panel Display
 
 If you have an [RGB matrix][rgb-matrix] connected to a Pi, you can run that
 as Flaschen Taschen backend:

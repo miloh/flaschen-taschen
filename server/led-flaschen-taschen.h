@@ -25,10 +25,19 @@ class MultiSPI;
 class LEDStrip;
 }
 
+class ServerFlaschenTaschen : public FlaschenTaschen {
+public:
+    // Server-side FlaschenTaschen displays might need to do some initialization
+    // after they have become a daemon. This can be used for general init
+    // tasks, but in particular to start threads (Threads must not be started
+    // before becoming a daemon).
+    virtual void PostDaemonInit() {}
+};
+
 // Column helps assembling the various columns of width 5 (the width of a crate)
 // to one big display. Since all SPI based strips are necessary upated in
 // parallel, that SPI send command is triggered within here.
-class ColumnAssembly : public FlaschenTaschen {
+class ColumnAssembly : public ServerFlaschenTaschen {
 public:
     ColumnAssembly(spixels::MultiSPI *spi);
     ~ColumnAssembly();
@@ -37,7 +46,6 @@ public:
     // Columns have been added right to left, or, if standing
     // behind the display: leftmost column first.
     void AddColumn(FlaschenTaschen *taschen);
-    void PostDaemonInit();
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -79,15 +87,14 @@ namespace rgb_matrix {
 class RGBMatrix;
 }
 
-class RGBMatrixFlaschenTaschen : public FlaschenTaschen {
+class RGBMatrixFlaschenTaschen : public ServerFlaschenTaschen {
 public:
-    RGBMatrixFlaschenTaschen(int offset_x, int offset_y,
+    RGBMatrixFlaschenTaschen(rgb_matrix::RGBMatrix *matrix,
+                             int offset_x, int offset_y,
                              int width, int heigh);
     virtual ~RGBMatrixFlaschenTaschen();
 
-    // Initialization that needs to be called after we have
-    // become a daemon.
-    void PostDaemonInit();
+    virtual void PostDaemonInit();  // Starting threads.
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -96,19 +103,19 @@ public:
     void Send() { /* update directly */ }
 
 private:
+    rgb_matrix::RGBMatrix *const matrix_;
+
     const int off_x_;
     const int off_y_;
     const int width_;
     const int height_;
-
-    rgb_matrix::RGBMatrix *matrix_;
 };
 
-class TerminalFlaschenTaschen : public FlaschenTaschen {
+class TerminalFlaschenTaschen : public ServerFlaschenTaschen {
 public:
     TerminalFlaschenTaschen(int terminal_fd, int width, int heigh);
     virtual ~TerminalFlaschenTaschen();
-    void PostDaemonInit() {}
+    virtual void PostDaemonInit();
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -116,7 +123,13 @@ public:
     void SetPixel(int x, int y, const Color &col);
     void Send();
 
-private:
+protected:
+    static inline void WriteByteDecimal(char *buf, uint8_t val) {
+        buf[2] = (val % 10) + '0'; val /= 10;
+        buf[1] = (val % 10) + '0'; val /= 10;
+        buf[0] = val + '0';
+    }
+
     const int terminal_fd_;
     const int width_;
     const int height_;
@@ -125,7 +138,19 @@ private:
     size_t fps_offset_;
     bool is_first_;
     std::string buffer_;
-    int64_t last_time_;
+    int64_t last_time_usec_;
+};
+
+// Similar, but higher res.
+class HDTerminalFlaschenTaschen : public TerminalFlaschenTaschen {
+public:
+    HDTerminalFlaschenTaschen(int terminal_fd, int width, int heigh);
+    virtual void PostDaemonInit();
+
+    void SetPixel(int x, int y, const Color &col);
+
+private:
+    size_t lower_row_pixel_offset_;
 };
 
 #endif // LED_FLASCHEN_TASCHEN_H_

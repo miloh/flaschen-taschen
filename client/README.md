@@ -1,10 +1,7 @@
 Flaschen Taschen Clients
 ========================
 
-Programs to send content to the FlaschenTaschen server. The server implements
-multiple protocols so that it is easy to use various means to connect to
-FlaschenTaschen; see toplevel
-directory [README.md](../README.md#getting-pixels-on-flaschen-taschen).
+Useful utilities to send content to the FlaschenTaschen installation.
 
 This directory provides:
   * `send-text` binary, that prints a static or scrolling text.
@@ -12,8 +9,6 @@ This directory provides:
     animated *.gifs), scales it and sends to FlaschenTaschen.
   * `send-video` binary, that reads an arbitrary video, scales it and
     sends to FlaschenTaschen.
-  * A [simple-example.cc](./simple-example.cc) and [simple-animation.cc](./simple-animation.cc)
-    code example.
 
 ### Network destination
 
@@ -49,10 +44,12 @@ Options:
         -h <host>       : Flaschen-Taschen display hostname.
         -f <fontfile>   : Path to *.bdf font file
         -s<ms>          : Scroll milliseconds per pixel (default 60). 0 for no-scroll.
-        -o              : Only run once, don't scroll forever.
+        -O              : Only run once, don't scroll forever.
+        -S<px>          : Letter spacing in pixels (default: 0)
         -c<RRGGBB>      : Text color as hex (default: FFFFFF)
         -b<RRGGBB>      : Background color as hex (default: 000000)
-        -v              : Scroll text vertically 
+        -o<RRGGBB>      : Outline color as hex (default: no outline)
+        -v              : Scroll text vertically
 ```
 
 Sample
@@ -70,6 +67,8 @@ Text has a default layer of 1, so it is hovering above the background image.
 If you don't want that, you can explicitly set it as last value in the geometry
 specification.
 
+If you add a `-o` color, then the font gets an outline of that given color,
+which you can use to create a contrast for the font.
 ## Send-Image
 
 ### Compile
@@ -115,6 +114,12 @@ Let's try this with an example image:
 
 ## Send-Video
 
+This utility here is a simple video output without sound.
+
+The upstream VLC [now has FlaschenTaschen support][vlc-commit] natively, so this
+might be the better option these days (currently, you have to compile it
+from source to get this bleeding edge).
+
 ### Compile
 ```bash
 # Need some devel libs
@@ -134,33 +139,5 @@ Options:
 
 ![](../img/ft-movie-night.jpg)
 
-## Example Code
 
-Coding content for FlaschenTaschen is trivial as you just need to send it UDP
-packets with the content. Any language of your choice that supports networking
-will do.
-
-For C++, there is a simple implementation of such a 'client display', the
-[simple-example.cc](./simple-example.cc) helps to get started.
-
-```c++
-#include "udp-flaschen-taschen.h"
-
-#define DISPLAY_WIDTH  20
-#define DISPLAY_HEIGHT 20
-
-int main() {
-    // Open socket and create our canvas.
-    const int socket = OpenFlaschenTaschenSocket("ft.noise");
-    UDPFlaschenTaschen canvas(socket, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-
-    const Color red(255, 0, 0);
-    canvas.SetPixel(0, 0, red);              // Sample with color variable.
-    canvas.SetPixel(5, 5, Color(0, 0, 255)); // or just use inline (here: blue).
-
-    canvas.Send();                           // Send the framebuffer.
-}
-```
-
-Next step, try a [simple-animation.cc](./simple-animation.cc)
-<a href="./simple-animation.cc"><img src="../img/invader.png" width="50px"></a>
+[vlc-commit]: https://git.videolan.org/?p=vlc.git;a=commit;h=cf334f257868d20b6a6ce024994e84ba3e3448c3
