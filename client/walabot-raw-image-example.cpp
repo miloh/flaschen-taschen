@@ -129,6 +129,8 @@ void SensorCode_SampleCode(const char* hostname)
 	int		sizeY = -1;
 	double	sliceDepth;
 	double	power;
+    // Walabot threshold info
+        double thresh = 0;
 
 	// ------------------------
 	// Initialize configuration
@@ -140,13 +142,13 @@ void SensorCode_SampleCode(const char* hostname)
 	double resICm = .1;
 
 	// Walabot_SetArenaTheta - input parameters
-	double minIndegrees = -0.01;
-	double maxIndegrees = 0.01;
+	double minIndegrees = -1.0;
+	double maxIndegrees = 1.0;
 	double resIndegrees = 1;
 
 	// Walabot_SetArenaPhi - input parameters
-	double minPhiInDegrees = -0.01;
-	double maxPhiInDegrees = 0.01;
+	double minPhiInDegrees = -1.0;
+	double maxPhiInDegrees = 1.0;
 	double resPhiInDegrees = 1;
 
 	// ----------------------
@@ -240,6 +242,9 @@ void SensorCode_SampleCode(const char* hostname)
 		res = Walabot_Trigger();
 		CHECK_WALABOT_RESULT(res, "Walabot_Trigger");
 
+		res = Walabot_GetThreshold(&thresh);
+		CHECK_WALABOT_RESULT(res, "Walabot_GetThreshold");
+
 		//	6) 	Get action : retrieve the last completed triggered recording 
 		//	================================================================
 		res = Walabot_GetSensorTargets(&targets, &numTargets);
@@ -247,7 +252,6 @@ void SensorCode_SampleCode(const char* hostname)
 
 		res = Walabot_GetRawImageSlice(&rasterImage, &sizeX, &sizeY, &sliceDepth, &power);
 		CHECK_WALABOT_RESULT(res, "Walabot_GetRawImageSlice");
-		std::cout << "Size : " << sizeX << "x" << sizeY << std::endl;
 
 		//	******************************
 		//	TODO: add processing code here
@@ -263,6 +267,7 @@ void SensorCode_SampleCode(const char* hostname)
 	printf("First Image\n");
 	cout << "sizeX: " << sizeX << endl;
 	cout << "sizeY: " << sizeY << endl;
+	cout << "thresh: " << thresh << endl;
 	cout << "sliceDepth: " << sliceDepth << endl;
 	int *current_value = rasterImage;
         // Open socket and create our canvas.
@@ -270,15 +275,12 @@ void SensorCode_SampleCode(const char* hostname)
         UDPFlaschenTaschen canvas(socket, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 	for (int y = 0; y < sizeY; ++y) {
 	  	for (int x = 0; x < sizeX; ++x) {
-    		    canvas.SetPixel(y, x, Color(0,*current_value,0));         // Sample with color variable.
+    		     canvas.SetPixel(y, x, Color(0,*current_value,0));         // Sample with color variable.
 		     //fprintf(stderr, "%02x ", *current_value);
 		     ++current_value;
 		}
-		//usleep(5000);
-                //canvas.Send();                           // Send the framebuffer.
-		//fprintf(stderr, "\n");
-	}
         canvas.Send();
+	}
 		//recording = false;
 
 		// PrintSensorTargets(targets, numTargets);
